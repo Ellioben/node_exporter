@@ -31,6 +31,7 @@ var (
 )
 
 func (c *meminfoCollector) getMemInfo() (map[string]float64, error) {
+	// getMemInfo from proc/meminfo
 	file, err := os.Open(procFilePath("meminfo"))
 	if err != nil {
 		return nil, err
@@ -47,6 +48,7 @@ func parseMemInfo(r io.Reader) (map[string]float64, error) {
 	)
 
 	for scanner.Scan() {
+		// 按行处理
 		line := scanner.Text()
 		parts := strings.Fields(line)
 		// Workaround for empty lines occasionally occur in CentOS 6.2 kernel 3.10.90.

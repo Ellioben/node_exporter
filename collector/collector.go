@@ -57,6 +57,7 @@ var (
 	forcedCollectors       = map[string]bool{} // collectors which have been explicitly enabled or disabled
 )
 
+// register feature collector
 func registerCollector(collector string, isDefaultEnabled bool, factory func(logger log.Logger) (Collector, error)) {
 	var helpDefaultState string
 	if isDefaultEnabled {
@@ -107,6 +108,7 @@ func collectorFlagAction(collector string) func(ctx *kingpin.ParseContext) error
 func NewNodeCollector(logger log.Logger, filters ...string) (*NodeCollector, error) {
 	f := make(map[string]bool)
 	for _, filter := range filters {
+		// filter the collectors
 		enabled, exist := collectorState[filter]
 		if !exist {
 			return nil, fmt.Errorf("missing collector: %s", filter)
@@ -134,7 +136,15 @@ func NewNodeCollector(logger log.Logger, filters ...string) (*NodeCollector, err
 			initiatedCollectors[key] = collector
 		}
 	}
+	// generator the collectors by collectorState[map]
+	// checke the collectorState store and you can find the feature register behaviour
+	// the method is registered into factories
+	// that is the one of themself init()
+
 	return &NodeCollector{Collectors: collectors, logger: logger}, nil
+	// NodeCollector is the big abstract Collector
+	// this is implements the prometheus.Collector interface.
+	// they has two interface
 }
 
 // Describe implements the prometheus.Collector interface.
@@ -144,11 +154,14 @@ func (n NodeCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 // Collect implements the prometheus.Collector interface.
+// it's be called in the prometheus
 func (n NodeCollector) Collect(ch chan<- prometheus.Metric) {
 	wg := sync.WaitGroup{}
+	// 协同控制
 	wg.Add(len(n.Collectors))
 	for name, c := range n.Collectors {
 		go func(name string, c Collector) {
+			// foreach collector to execute
 			execute(name, c, ch, n.logger)
 			wg.Done()
 		}(name, c)
@@ -158,6 +171,7 @@ func (n NodeCollector) Collect(ch chan<- prometheus.Metric) {
 
 func execute(name string, c Collector, ch chan<- prometheus.Metric, logger log.Logger) {
 	begin := time.Now()
+	// 调用各自collector的update，执行具体方法
 	err := c.Update(ch)
 	duration := time.Since(begin)
 	var success float64

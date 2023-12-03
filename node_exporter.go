@@ -52,6 +52,7 @@ type handler struct {
 }
 
 func newHandler(includeExporterMetrics bool, maxRequests int, logger log.Logger) *handler {
+	// init handler
 	h := &handler{
 		exporterMetricsRegistry: prometheus.NewRegistry(),
 		includeExporterMetrics:  includeExporterMetrics,
@@ -64,6 +65,7 @@ func newHandler(includeExporterMetrics bool, maxRequests int, logger log.Logger)
 			promcollectors.NewGoCollector(),
 		)
 	}
+	// major handle
 	if innerHandler, err := h.innerHandler(); err != nil {
 		panic(fmt.Sprintf("Couldn't create metrics handler: %s", err))
 	} else {
@@ -99,6 +101,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // (in which case it will log all the collectors enabled via command-line
 // flags).
 func (h *handler) innerHandler(filters ...string) (http.Handler, error) {
+	// filters feature name
 	nc, err := collector.NewNodeCollector(h.logger, filters...)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create collector: %s", err)
@@ -114,12 +117,14 @@ func (h *handler) innerHandler(filters ...string) (http.Handler, error) {
 		}
 		sort.Strings(collectors)
 		for _, c := range collectors {
+			// print collector
 			level.Info(h.logger).Log("collector", c)
 		}
 	}
 
 	r := prometheus.NewRegistry()
 	r.MustRegister(version.NewCollector("node_exporter"))
+	// 将filter后的nc注册到prometheus sdk的注册表里
 	if err := r.Register(nc); err != nil {
 		return nil, fmt.Errorf("couldn't register node collector: %s", err)
 	}
@@ -197,6 +202,7 @@ func main() {
 	runtime.GOMAXPROCS(*maxProcs)
 	level.Debug(logger).Log("msg", "Go MAXPROCS", "procs", runtime.GOMAXPROCS(0))
 
+	// open a port to push the metrics
 	http.Handle(*metricsPath, newHandler(!*disableExporterMetrics, *maxRequests, logger))
 	if *metricsPath != "/" {
 		landingConfig := web.LandingConfig{

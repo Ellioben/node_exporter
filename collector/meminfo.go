@@ -47,17 +47,20 @@ func NewMeminfoCollector(logger log.Logger) (Collector, error) {
 // memory metrics.
 func (c *meminfoCollector) Update(ch chan<- prometheus.Metric) error {
 	var metricType prometheus.ValueType
+	// get meminfo from proc.meminfo and parse line by line
 	memInfo, err := c.getMemInfo()
 	if err != nil {
 		return fmt.Errorf("couldn't get meminfo: %w", err)
 	}
 	level.Debug(c.logger).Log("msg", "Set node_mem", "memInfo", memInfo)
 	for k, v := range memInfo {
+		// detect the metric type
 		if strings.HasSuffix(k, "_total") {
 			metricType = prometheus.CounterValue
 		} else {
 			metricType = prometheus.GaugeValue
 		}
+		// set the pormetheus metric
 		ch <- prometheus.MustNewConstMetric(
 			prometheus.NewDesc(
 				prometheus.BuildFQName(namespace, memInfoSubsystem, k),
