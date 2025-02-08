@@ -118,6 +118,7 @@ func NewNodeCollector(logger log.Logger, filters ...string) (*NodeCollector, err
 		}
 		f[filter] = true
 	}
+	// 每个参数指标都在实现这个Collector的接口
 	collectors := make(map[string]Collector)
 	initiatedCollectorsMtx.Lock()
 	defer initiatedCollectorsMtx.Unlock()
